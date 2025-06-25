@@ -1,0 +1,315 @@
+
+
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Task Manager with Time Alerts</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f7f9;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100vh;
+      margin: 0;
+      padding-top: 40px;
+    }
+
+    .container {
+      display: flex;
+      gap: 40px;
+      max-width: 1000px;
+      width: 100%;
+      padding: 0 20px;
+    }
+
+    .form-container,
+    .task-container {
+      background: #ffffff;
+      padding: 30px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 450px;
+      position: relative;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-top: 0;
+    }
+
+    .live-time {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: 18px;
+      color: #555;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    input[type="text"],
+    input[type="time"] {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 2px solid #ddd;
+    }
+
+    .add-btn {
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .add-btn:hover {
+      background-color: #0056b3;
+    }
+
+    .tasks {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .task {
+      background-color: #f1f1f1;
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .task-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .task.completed {
+      background-color: #d4edda;
+      text-decoration: line-through;
+      color: #555;
+    }
+
+    .btn-group button {
+      margin-left: 8px;
+      padding: 6px 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .btn-done {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .btn-delete {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .btn-done:hover {
+      background-color: #218838;
+    }
+
+    .btn-delete:hover {
+      background-color: #c82333;
+    }
+
+    .message {
+      position: absolute;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #d1e7dd;
+      color: #0f5132;
+      border: 1px solid #badbcc;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      display: none;
+      z-index: 10;
+    }
+
+    .message.show {
+      display: block;
+      animation: fadeOut 3s forwards;
+    }
+
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { opacity: 0; display: none; }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    Left: Add Task Form 
+    <div class="form-container">
+      <h2>Add New Task</h2>
+      <div class="input-group">
+        <input type="text" id="taskName" placeholder="Enter task name..." />
+        <input type="time" id="startTime" />
+        <input type="time" id="endTime" />
+        <button class="add-btn" id="addTaskBtn">Add Task</button>
+      </div>
+    </div>
+
+     Right: Task List 
+    <div class="task-container">
+      <div class="message" id="messageBox">✅ Task Completed Successfully!</div>
+      <h2>Task List</h2>
+      <div class="live-time" id="liveClock">Time: --:-- --</div>
+      <div class="tasks" id="taskList"></div>
+    </div>
+  </div>
+
+  <script>
+    const taskName = document.getElementById('taskName');
+    const startTime = document.getElementById('startTime');
+    const endTime = document.getElementById('endTime');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskList = document.getElementById('taskList');
+    const messageBox = document.getElementById('messageBox');
+    const liveClock = document.getElementById('liveClock');
+
+    const tasks = [];
+
+    function showMessage(text) {
+      messageBox.textContent = text;
+      messageBox.classList.add("show");
+      setTimeout(() => {
+        messageBox.classList.remove("show");
+      }, 3000);
+    }
+
+    function formatTimeToAMPM(timeStr) {
+      const [hour, minute] = timeStr.split(':');
+      let h = parseInt(hour), m = minute;
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${m} ${ampm}`;
+    }
+
+    function updateLiveClock() {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const h = hours % 12 || 12;
+      liveClock.textContent = `Time: ${h}:${minutes} ${ampm}`;
+    }
+
+    function checkDeadlines() {
+      const now = new Date();
+      tasks.forEach(t => {
+        if (t.completed) return;
+        const deadline = new Date();
+        const [h, m] = t.end.split(':');
+        deadline.setHours(h, m, 0, 0);
+
+        const diff = (deadline - now) / (60 * 1000); // in minutes
+
+        if (diff <= 5 && !t.warned) {
+          alert(`⚠️ Task "${t.name}" is close to the deadline!`);
+          t.warned = true;
+        }
+      });
+    }
+
+    setInterval(() => {
+      updateLiveClock();
+      checkDeadlines();
+    }, 1000);
+
+    addTaskBtn.addEventListener('click', () => {
+      const name = taskName.value.trim();
+      const start = startTime.value;
+      const end = endTime.value;
+
+      if (!name || !start || !end) {
+        alert('Please fill all fields');
+        return;
+      }
+
+      const taskDiv = document.createElement('div');
+      taskDiv.classList.add('task');
+
+      taskDiv.innerHTML = `
+        <div class="task-details">
+          <strong>${name}</strong>
+          <small>Start: ${formatTimeToAMPM(start)}</small>
+          <small>Deadline: ${formatTimeToAMPM(end)}</small>
+        </div>
+        <div class="btn-group">
+          <button class="btn-done">Done</button>
+          <button class="btn-delete">Delete</button>
+        </div>
+      `;
+
+      const taskData = {
+        name,
+        end,
+        completed: false,
+        warned: false,
+        element: taskDiv
+      };
+      tasks.push(taskData);
+
+      taskDiv.querySelector('.btn-done').addEventListener('click', () => {
+        taskDiv.classList.add('completed');
+        taskData.completed = true;
+        showMessage("✅ Task Completed Successfully!");
+      });
+
+      taskDiv.querySelector('.btn-delete').addEventListener('click', () => {
+        taskList.removeChild(taskDiv);
+        taskData.completed = true; // prevent further alerts
+      });
+
+      taskList.appendChild(taskDiv);
+
+      taskName.value = '';
+      startTime.value = '';
+      endTime.value = '';
+    });
+
+    updateLiveClock();
+
+    
+  </script>
+
+</body>
+</html> 
+
+
+
+
+
